@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>ポスター掲示板 巡回ルート</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700;900&display=swap');
+:root{--bg:#0d1117;--su:#161b22;--s2:#21262d;--bd:#30363d;--tx:#e6edf3;--mu:#8b949e;--ok:#3fb950;--ca:#f0883e;--cb:#a78bfa;--cc:#34d399}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--tx);height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+.hd{background:var(--su);border-bottom:1px solid var(--bd);padding:10px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.hi{width:30px;height:30px;background:var(--ca);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.hd h1{font-size:13px;font-weight:700;line-height:1.3}
+.hd h1 small{font-size:10px;font-weight:400;color:var(--mu);display:block}
+.tabs{display:flex;background:var(--su);border-bottom:1px solid var(--bd);flex-shrink:0}
+.tb{flex:1;padding:8px 2px 9px;border:none;background:transparent;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer;border-bottom:2px solid transparent;color:var(--mu);line-height:1.4;text-align:center}
+.tb.on-a{color:var(--ca);border-bottom-color:var(--ca)}
+.tb.on-b{color:var(--cb);border-bottom-color:var(--cb)}
+.tb.on-c{color:var(--cc);border-bottom-color:var(--cc)}
+.tb.on-m{color:#60a5fa;border-bottom-color:#60a5fa}
+.bge{display:inline-block;font-size:9px;font-weight:900;padding:1px 5px;border-radius:20px}
+.ba{background:var(--ca);color:#000}.bb{background:var(--cb);color:#000}.bc{background:var(--cc);color:#000}.bm{background:#60a5fa;color:#000}
+.pw{background:var(--s2);padding:8px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px;flex-shrink:0}
+.pb{flex:1;height:5px;background:var(--bd);border-radius:3px;overflow:hidden}
+.pf{height:100%;border-radius:3px;transition:width .4s}
+.pfa{background:linear-gradient(90deg,var(--ca),#ffb347)}.pfb{background:linear-gradient(90deg,var(--cb),#c4b5fd)}.pfc{background:linear-gradient(90deg,var(--cc),#6ee7b7)}
+.pl{font-size:11px;color:var(--mu);white-space:nowrap}.pl b{color:var(--ok)}
+.panels{flex:1;position:relative;overflow:hidden}
+.panel{position:absolute;top:0;left:0;width:100%;height:100%;overflow-y:auto;padding:10px 11px 50px;display:none}
+.panel.active{display:block}
+#map-panel{position:absolute;top:0;left:0;width:100%;height:100%;display:none}
+#map-panel.active{display:block}
+#map{width:100%;height:100%}
+.sl{font-size:10px;font-weight:700;color:var(--mu);padding:7px 3px 5px;border-bottom:1px solid var(--bd);margin-bottom:7px}
+.cd{background:var(--su);border:1px solid var(--bd);border-radius:10px;margin-bottom:7px;overflow:hidden}
+.cd.dn{opacity:.5}.cd.dn .nm{text-decoration:line-through;color:var(--mu)}
+.cd.da{border-color:var(--ca)}.cd.db{border-color:var(--cb)}.cd.dc{border-color:var(--cc)}
+.cm{display:flex;align-items:flex-start;padding:11px;gap:9px}
+.cn{min-width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#000;flex-shrink:0;margin-top:1px}
+.na{background:var(--ca)}.nb{background:var(--cb)}.nc{background:var(--cc)}
+.cb2{flex:1;min-width:0}
+.mt{font-size:10px;color:#58a6ff;font-weight:600;margin-bottom:2px}
+.nm{font-size:13px;font-weight:700;line-height:1.3;margin-bottom:2px}
+.ad{font-size:11px;color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ck{width:26px;height:26px;border-radius:50%;border:2px solid var(--bd);background:transparent;cursor:pointer;font-family:inherit;font-size:13px;color:transparent;flex-shrink:0}
+.cd.dn .ck{color:#000}
+.cd.da .ck{background:var(--ca);border-color:var(--ca)}
+.cd.db .ck{background:var(--cb);border-color:var(--cb)}
+.cd.dc .ck{background:var(--cc);border-color:var(--cc)}
+.cf{border-top:1px solid var(--bd);display:flex}
+.nv{flex:1;padding:8px 6px;border:none;background:transparent;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;text-decoration:none}
+.nv:active{background:var(--s2)}.nv+.nv{border-left:1px solid var(--bd)}
+.ng{color:#4ade80}.nap{color:#60a5fa}
+.rst{display:block;margin:14px auto 4px;padding:7px 18px;background:transparent;border:1px solid var(--bd);border-radius:6px;color:var(--mu);font-family:inherit;font-size:11px;cursor:pointer}
+.lp{font-family:sans-serif;font-size:12px;line-height:1.6;min-width:170px}
+.lp .po{font-weight:900;font-size:15px}
+.lp .pn{font-weight:700;margin:2px 0 1px}
+.lp .pa2{color:#666;font-size:11px;margin-bottom:6px}
+.lp a{display:block;text-align:center;padding:5px 8px;border-radius:5px;text-decoration:none;font-weight:700;font-size:11px;margin-top:3px;color:#fff}
+.lp .gm{background:#1a7a3e}.lp .am{background:#1a4a7a}
+#lg{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);z-index:1000;background:rgba(13,17,23,.92);border:1px solid #30363d;border-radius:10px;padding:8px 16px;display:flex;gap:12px;pointer-events:none}
+.li{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700}
+.ld{width:10px;height:10px;border-radius:50%}
+</style>
+</head>
+<body>
+<div class="hd"><div class="hi">📋</div>
+<div><h1>ポスター掲示板 巡回ルート<small>中野区議選挙・告示日｜3チーム体制</small></h1></div></div>
+<div class="tabs">
+<button class="tb on-a" id="t0" onclick="sw(0)"><span class="bge ba">A</span><br>投票区10・11・12<br><small style="font-weight:400;font-size:9px">24箇所</small></button>
+<button class="tb" id="t1" onclick="sw(1)"><span class="bge bb">B</span><br>投票区27・28<br><small style="font-weight:400;font-size:9px">16箇所</small></button>
+<button class="tb" id="t2" onclick="sw(2)"><span class="bge bc">C</span><br>投票区39・40<br><small style="font-weight:400;font-size:9px">16箇所</small></button>
+<button class="tb" id="t3" onclick="sw(3)"><span class="bge bm">🗺</span><br>ルート地図<br><small style="font-weight:400;font-size:9px">3チーム</small></button>
+</div>
+<div class="pw" id="pw">
+<div class="pb"><div class="pf pfa" id="pf"></div></div>
+<div class="pl"><b id="pd">0</b>/<span id="pt">24</span>完了</div>
+</div>
+<div class="panels">
+  <div class="panel active" id="p0"><div class="sl">投票区10</div>
+<div class="cd" id="cd0-1"><div class="cm"><div class="cn na">1</div><div class="cb2"><div class="mt">通番77｜投票区10-6</div><div class="nm">桃園川緑道田替橋 西側</div><div class="ad">東京都中野区中央1-14</div></div><button class="ck" data-t="0" data-o="1" data-k="A" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.70102,139.68691&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.70102,139.68691&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd0-2"><div class="cm"><div class="cn na">2</div><div class="cb2"><div class="mt">通番74｜投票区10-3</div><div class="nm">区立小淀公園 東側</div><div class="ad">東京都中野区中央1-24</div></div><button class="ck" data-t="0" data-o="2" data-k="A" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.700855,139.686307&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.700855,139.686307&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd0-3"><div class="cm"><div class="cn na">3</div><div class="cb2"><div class="mt">通番72｜投票区10-1</div><div class="nm">区立中野東中学校 北側</div><div class="ad">東京都中野区中央1-41-4</div></div><button class="ck" data-t="0" data-o="3" data-k="A" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.698561,139.683748&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.698561,139.683748&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd0-4"><div class="cm"><div class="cn na">4</div><div class="cb2"><div class="mt">通番73｜投票区10-2</div><div class="nm">区立中野東中学校 東側</div><div class="ad">東京都中野区中央1-41-4</div></div><button class="ck" data-t="0" data-o="4" data-k="A" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.698561,139.683748&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.698561,139.683748&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd0-5"><div class="cm"><div class="cn na">5</div><div class="cb2"><div class="mt">通番78｜投票区10-7</div><div class="nm">月極駐車場YSパーキング 東側</div><div class="ad">東京都中野区中央1-21</div></div><button class="ck" data-t="0" data-o="5" data-k="A" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.697221,139.686345&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.697221,139.686345&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd0-6"><div class="cm"><div class="cn na">6</div><div class="cb2"><div class="mt">通番79｜投票区10-8</div><div class="nm">区立本一公園 東側</div><div class="ad">東京都中野区本町1-23</div></div><button class="ck" data-t="0" data-o="6" data-k="A" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.694207,139.682763&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.694207,139.682763&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd0-7"><div class="cm"><div class="cn na">7</div><div class="cb2"><div class="mt">通番76｜投票区10-5</div><div class="nm">宝仙学園中学高等学校 西側</div><div class="ad">東京都中野区中央2-28-3</div></div><button class="ck" data-t="0" data-o="7" data-k="A" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.69852,139.680227&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.69852,139.680227&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="sl">投票区11</div>
+<div class="cd" id="cd0-8"><div class="cm"><div class="cn na">8</div><div class="cb2"><div class="mt">通番86｜投票区11-7</div><div class="nm">実践学園中学・高等学校 西側</div><div class="ad">東京都中野区中央2-34-2</div></div><button class="ck" data-t="0" data-o="8" data-k="A" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.700036,139.679826&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.700036,139.679826&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd0-9"><div class="cm"><div class="cn na">9</div><div class="cb2"><div class="mt">通番75｜投票区10-4</div><div class="nm">桃園川緑道東雲橋 西側</div><div class="ad">東京都中野区中央2-24</div></div><button class="ck" data-t="0" data-o="9" data-k="A" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.70055,139.6788&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.70055,139.6788&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd0-10"><div class="cm"><div class="cn na">10</div><div class="cb2"><div class="mt">通番84｜投票区11-5</div><div class="nm">区立宮前公園 北側</div><div class="ad">東京都中野区中央2-39</div></div><button class="ck" data-t="0" data-o="10" data-k="A" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.700882,139.678616&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.700882,139.678616&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd0-11"><div class="cm"><div class="cn na">11</div><div class="cb2"><div class="mt">通番85｜投票区11-6</div><div class="nm">区立本町通り公園 西側</div><div class="ad">東京都中野区中央2-46</div></div><button class="ck" data-t="0" data-o="11" data-k="A" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.69896,139.677211&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.69896,139.677211&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd0-12"><div class="cm"><div class="cn na">12</div><div class="cb2"><div class="mt">通番81｜投票区11-2</div><div class="nm">区立ひまわり公園 北側</div><div class="ad">東京都中野区中央2-52-15</div></div><button class="ck" data-t="0" data-o="12" data-k="A" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.699693,139.675668&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.699693,139.675668&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd0-13"><div class="cm"><div class="cn na">13</div><div class="cb2"><div class="mt">通番87｜投票区11-8</div><div class="nm">区立みずき公園 南側</div><div class="ad">東京都中野区中央2-54</div></div><button class="ck" data-t="0" data-o="13" data-k="A" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.700733,139.675789&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.700733,139.675789&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd0-14"><div class="cm"><div class="cn na">14</div><div class="cb2"><div class="mt">通番80｜投票区11-1</div><div class="nm">区立中部すこやか福祉センター 西側</div><div class="ad">東京都中野区中央3-19-1</div></div><button class="ck" data-t="0" data-o="14" data-k="A" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.700375,139.674207&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.700375,139.674207&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd0-15"><div class="cm"><div class="cn na">15</div><div class="cb2"><div class="mt">通番83｜投票区11-4</div><div class="nm">桃園川緑道（中央3-14） 北側</div><div class="ad">東京都中野区中央3-14</div></div><button class="ck" data-t="0" data-o="15" data-k="A" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.701,139.6738&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.701,139.6738&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd0-16"><div class="cm"><div class="cn na">16</div><div class="cb2"><div class="mt">通番82｜投票区11-3</div><div class="nm">慈眼寺 東側</div><div class="ad">東京都中野区中央3-33-3</div></div><button class="ck" data-t="0" data-o="16" data-k="A" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.698148,139.672003&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.698148,139.672003&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="sl">投票区12</div>
+<div class="cd" id="cd0-17"><div class="cm"><div class="cn na">17</div><div class="cb2"><div class="mt">通番94｜投票区12-7</div><div class="nm">区立追分公園 東側</div><div class="ad">東京都中野区中央4-7</div></div><button class="ck" data-t="0" data-o="17" data-k="A" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.698115,139.668799&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.698115,139.668799&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd0-18"><div class="cm"><div class="cn na">18</div><div class="cb2"><div class="mt">通番89｜投票区12-2</div><div class="nm">株式会社友和駐車場 西側</div><div class="ad">東京都中野区中央5-7-1</div></div><button class="ck" data-t="0" data-o="18" data-k="A" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.697651,139.665859&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.697651,139.665859&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd0-19"><div class="cm"><div class="cn na">19</div><div class="cb2"><div class="mt">通番91｜投票区12-4</div><div class="nm">区立中央西公園 南側</div><div class="ad">東京都中野区中央5-27</div></div><button class="ck" data-t="0" data-o="19" data-k="A" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.69925,139.663751&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.69925,139.663751&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd0-20"><div class="cm"><div class="cn na">20</div><div class="cb2"><div class="mt">通番88｜投票区12-1</div><div class="nm">区立桃花小学校 西側</div><div class="ad">東京都中野区中央5-43-1</div></div><button class="ck" data-t="0" data-o="20" data-k="A" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.700455,139.665519&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.700455,139.665519&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd0-21"><div class="cm"><div class="cn na">21</div><div class="cb2"><div class="mt">通番95｜投票区12-8</div><div class="nm">区立桃花小学校 南側</div><div class="ad">東京都中野区中央5-43-1</div></div><button class="ck" data-t="0" data-o="21" data-k="A" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.700455,139.665519&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.700455,139.665519&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd0-22"><div class="cm"><div class="cn na">22</div><div class="cb2"><div class="mt">通番92｜投票区12-5</div><div class="nm">区立中央公園 東側</div><div class="ad">東京都中野区中央5-42</div></div><button class="ck" data-t="0" data-o="22" data-k="A" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.700795,139.666579&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.700795,139.666579&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd0-23"><div class="cm"><div class="cn na">23</div><div class="cb2"><div class="mt">通番93｜投票区12-6</div><div class="nm">区立橋場公園 南側</div><div class="ad">東京都中野区中央5-41</div></div><button class="ck" data-t="0" data-o="23" data-k="A" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.701669,139.665951&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.701669,139.665951&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd0-24"><div class="cm"><div class="cn na">24</div><div class="cb2"><div class="mt">通番90｜投票区12-3</div><div class="nm">区立鍋横防災広場 東側</div><div class="ad">東京都中野区中央4-8-16</div></div><button class="ck" data-t="0" data-o="24" data-k="A" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.700828,139.669818&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.700828,139.669818&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<button class="rst" onclick="rst(0)">✕ チェックをリセット</button></div>
+  <div class="panel" id="p1"><div class="sl">投票区28</div>
+<div class="cd" id="cd1-1"><div class="cm"><div class="cn nb">1</div><div class="cb2"><div class="mt">通番217｜投票区28-4</div><div class="nm">区立新井薬師公園 南側</div><div class="ad">東京都中野区新井5-4</div></div><button class="ck" data-t="1" data-o="1" data-k="B" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.714894,139.667524&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.714894,139.667524&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd1-2"><div class="cm"><div class="cn nb">2</div><div class="cb2"><div class="mt">通番218｜投票区28-5</div><div class="nm">区立新井薬師公園ひょうたん池 東側</div><div class="ad">東京都中野区新井4-15</div></div><button class="ck" data-t="1" data-o="2" data-k="B" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.715303,139.666887&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.715303,139.666887&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd1-3"><div class="cm"><div class="cn nb">3</div><div class="cb2"><div class="mt">通番214｜投票区28-1</div><div class="nm">区立令和小学校 南側</div><div class="ad">東京都中野区新井4-19-26</div></div><button class="ck" data-t="1" data-o="3" data-k="B" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.717122,139.668328&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.717122,139.668328&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd1-4"><div class="cm"><div class="cn nb">4</div><div class="cb2"><div class="mt">通番215｜投票区28-2</div><div class="nm">区立令和小学校 北側</div><div class="ad">東京都中野区新井4-19-26</div></div><button class="ck" data-t="1" data-o="4" data-k="B" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.717122,139.668328&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.717122,139.668328&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd1-5"><div class="cm"><div class="cn nb">5</div><div class="cb2"><div class="mt">通番221｜投票区28-8</div><div class="nm">区立清掃事務所 西側</div><div class="ad">東京都中野区松が丘1-6-3</div></div><button class="ck" data-t="1" data-o="5" data-k="B" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.717563,139.669585&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.717563,139.669585&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd1-6"><div class="cm"><div class="cn nb">6</div><div class="cb2"><div class="mt">通番219｜投票区28-6</div><div class="nm">妙正寺川（松が丘2-4）大下橋 南東側</div><div class="ad">東京都中野区松が丘2-4</div></div><button class="ck" data-t="1" data-o="6" data-k="B" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.718633,139.670099&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.718633,139.670099&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd1-7"><div class="cm"><div class="cn nb">7</div><div class="cb2"><div class="mt">通番220｜投票区28-7</div><div class="nm">妙正寺川（沼袋1-5-6） 北側</div><div class="ad">東京都中野区沼袋1-5-6</div></div><button class="ck" data-t="1" data-o="7" data-k="B" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.71776,139.666175&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.71776,139.666175&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd1-8"><div class="cm"><div class="cn nb">8</div><div class="cb2"><div class="mt">通番216｜投票区28-3</div><div class="nm">妙正寺川（沼袋1-7） 北側</div><div class="ad">東京都中野区沼袋1-7</div></div><button class="ck" data-t="1" data-o="8" data-k="B" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.7188,139.6646&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.7188,139.6646&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="sl">投票区27</div>
+<div class="cd" id="cd1-9"><div class="cm"><div class="cn nb">9</div><div class="cb2"><div class="mt">通番210｜投票区27-5</div><div class="nm">区立沼袋保育園 南側</div><div class="ad">東京都中野区沼袋1-34-14</div></div><button class="ck" data-t="1" data-o="9" data-k="B" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.719566,139.664989&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.719566,139.664989&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd1-10"><div class="cm"><div class="cn nb">10</div><div class="cb2"><div class="mt">通番209｜投票区27-4</div><div class="nm">私立沼袋幼稚園 東側</div><div class="ad">東京都中野区沼袋2-28-2</div></div><button class="ck" data-t="1" data-o="10" data-k="B" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.721075,139.665371&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.721075,139.665371&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd1-11"><div class="cm"><div class="cn nb">11</div><div class="cb2"><div class="mt">通番213｜投票区27-8</div><div class="nm">区立歴史民俗資料館 北側</div><div class="ad">東京都中野区江古田4-3-4</div></div><button class="ck" data-t="1" data-o="11" data-k="B" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.72412,139.665013&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.72412,139.665013&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd1-12"><div class="cm"><div class="cn nb">12</div><div class="cb2"><div class="mt">通番206｜投票区27-1</div><div class="nm">区立沼袋区民活動センター 西側</div><div class="ad">東京都中野区沼袋2-40-18</div></div><button class="ck" data-t="1" data-o="12" data-k="B" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.723653,139.66304&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.723653,139.66304&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd1-13"><div class="cm"><div class="cn nb">13</div><div class="cb2"><div class="mt">通番211｜投票区27-6</div><div class="nm">区立北部すこやか福祉センター 北側</div><div class="ad">東京都中野区江古田4-31-10</div></div><button class="ck" data-t="1" data-o="13" data-k="B" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.724692,139.66152&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.724692,139.66152&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd1-14"><div class="cm"><div class="cn nb">14</div><div class="cb2"><div class="mt">通番212｜投票区27-7</div><div class="nm">中野区シルバー人材センター江古田分室 西側</div><div class="ad">東京都中野区江古田4-14-11</div></div><button class="ck" data-t="1" data-o="14" data-k="B" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.725685,139.664063&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.725685,139.664063&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd1-15"><div class="cm"><div class="cn nb">15</div><div class="cb2"><div class="mt">通番208｜投票区27-3</div><div class="nm">都営第3江古田アパート3号棟 東側</div><div class="ad">東京都中野区江古田4-14-7</div></div><button class="ck" data-t="1" data-o="15" data-k="B" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.725688,139.664202&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.725688,139.664202&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd1-16"><div class="cm"><div class="cn nb">16</div><div class="cb2"><div class="mt">通番207｜投票区27-2</div><div class="nm">特別養護老人ホーム浄風園 東側</div><div class="ad">東京都中野区江古田4-19-9</div></div><button class="ck" data-t="1" data-o="16" data-k="B" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.727383,139.663204&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.727383,139.663204&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<button class="rst" onclick="rst(1)">✕ チェックをリセット</button></div>
+  <div class="panel" id="p2"><div class="sl">投票区39</div>
+<div class="cd" id="cd2-1"><div class="cm"><div class="cn nc">1</div><div class="cb2"><div class="mt">通番303｜投票区39-3</div><div class="nm">区立若葉公園 北側</div><div class="ad">東京都中野区鷺宮5-11</div></div><button class="ck" data-t="2" data-o="1" data-k="C" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.725226,139.631755&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.725226,139.631755&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd2-2"><div class="cm"><div class="cn nc">2</div><div class="cb2"><div class="mt">通番304｜投票区39-4</div><div class="nm">区立鷺六公園 北側</div><div class="ad">東京都中野区鷺宮6-24</div></div><button class="ck" data-t="2" data-o="2" data-k="C" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.725699,139.62983&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.725699,139.62983&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd2-3"><div class="cm"><div class="cn nc">3</div><div class="cb2"><div class="mt">通番301｜投票区39-1</div><div class="nm">区立武蔵台小学校 南側</div><div class="ad">東京都中野区上鷺宮5-1-1</div></div><button class="ck" data-t="2" data-o="3" data-k="C" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.727884,139.629901&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.727884,139.629901&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd2-4"><div class="cm"><div class="cn nc">4</div><div class="cb2"><div class="mt">通番306｜投票区39-6</div><div class="nm">区立北中野中学校 西側</div><div class="ad">東京都中野区上鷺宮5-7-1</div></div><button class="ck" data-t="2" data-o="4" data-k="C" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.728318,139.628546&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.728318,139.628546&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd2-5"><div class="cm"><div class="cn nc">5</div><div class="cb2"><div class="mt">通番302｜投票区39-2</div><div class="nm">都立稔が丘高等学校 東側</div><div class="ad">東京都中野区上鷺宮5-11-1</div></div><button class="ck" data-t="2" data-o="5" data-k="C" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.727976,139.625896&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.727976,139.625896&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd2-6"><div class="cm"><div class="cn nc">6</div><div class="cb2"><div class="mt">通番308｜投票区39-8</div><div class="nm">区立上鷺西公園 東側</div><div class="ad">東京都中野区上鷺宮5-17</div></div><button class="ck" data-t="2" data-o="6" data-k="C" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.7313,139.625231&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.7313,139.625231&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd2-7"><div class="cm"><div class="cn nc">7</div><div class="cb2"><div class="mt">通番307｜投票区39-7</div><div class="nm">区立八成公園 北側</div><div class="ad">東京都中野区上鷺宮5-19</div></div><button class="ck" data-t="2" data-o="7" data-k="C" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.731553,139.626382&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.731553,139.626382&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="sl">投票区40</div>
+<div class="cd" id="cd2-8"><div class="cm"><div class="cn nc">8</div><div class="cb2"><div class="mt">通番313｜投票区40-5</div><div class="nm">区立上鷺公園 南側</div><div class="ad">東京都中野区上鷺宮4-8</div></div><button class="ck" data-t="2" data-o="8" data-k="C" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.732178,139.628441&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.732178,139.628441&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd2-9"><div class="cm"><div class="cn nc">9</div><div class="cb2"><div class="mt">通番314｜投票区40-6</div><div class="nm">区立風の子広場 南側</div><div class="ad">東京都中野区上鷺宮4-14</div></div><button class="ck" data-t="2" data-o="9" data-k="C" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.734118,139.629022&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.734118,139.629022&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd2-10"><div class="cm"><div class="cn nc">10</div><div class="cb2"><div class="mt">通番315｜投票区40-7</div><div class="nm">中野区かみさぎ特別養護老人ホーム 南側</div><div class="ad">東京都中野区上鷺宮3-17-4</div></div><button class="ck" data-t="2" data-o="10" data-k="C" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.7352,139.631464&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.7352,139.631464&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd2-11"><div class="cm"><div class="cn nc">11</div><div class="cb2"><div class="mt">通番309｜投票区40-1</div><div class="nm">区立上鷺宮区民活動センター 南側</div><div class="ad">東京都中野区上鷺宮3-7-6</div></div><button class="ck" data-t="2" data-o="11" data-k="C" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.731893,139.632126&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.731893,139.632126&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd2-12"><div class="cm"><div class="cn nc">12</div><div class="cb2"><div class="mt">通番305｜投票区39-5</div><div class="nm">区立武蔵台公園 東側</div><div class="ad">東京都中野区上鷺宮5-26</div></div><button class="ck" data-t="2" data-o="12" data-k="C" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.730591,139.630265&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.730591,139.630265&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd2-13"><div class="cm"><div class="cn nc">13</div><div class="cb2"><div class="mt">通番311｜投票区40-3</div><div class="nm">区立上鷺東公園 東側</div><div class="ad">東京都中野区上鷺宮2-18</div></div><button class="ck" data-t="2" data-o="13" data-k="C" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.729782,139.63469&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.729782,139.63469&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd2-14"><div class="cm"><div class="cn nc">14</div><div class="cb2"><div class="mt">通番310｜投票区40-2</div><div class="nm">区立かみさぎこぶし園 南側</div><div class="ad">東京都中野区上鷺宮1-21-30</div></div><button class="ck" data-t="2" data-o="14" data-k="C" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.729943,139.636029&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.729943,139.636029&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd2-15"><div class="cm"><div class="cn nc">15</div><div class="cb2"><div class="mt">通番312｜投票区40-4</div><div class="nm">区立上鷺宮小学校 東側</div><div class="ad">東京都中野区上鷺宮1-24-36</div></div><button class="ck" data-t="2" data-o="15" data-k="C" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.731671,139.634973&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.731671,139.634973&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<div class="cd" id="cd2-16"><div class="cm"><div class="cn nc">16</div><div class="cb2"><div class="mt">通番316｜投票区40-8</div><div class="nm">区立上鷺宮小学校 北側</div><div class="ad">東京都中野区上鷺宮1-24-36</div></div><button class="ck" data-t="2" data-o="16" data-k="C" onclick="tog(this)"></button></div><div class="cf"><a class="nv ng" href="https://www.google.com/maps/dir/?api=1&destination=35.731671,139.634973&travelmode=driving" target="_blank">Googleマップでナビ</a><a class="nv nap" href="http://maps.apple.com/?daddr=35.731671,139.634973&dirflg=d" target="_blank">Appleマップ</a></div></div>
+<button class="rst" onclick="rst(2)">✕ チェックをリセット</button></div>
+  <div id="map-panel"><div id="map"></div><div id="lg"></div></div>
+</div>
+<script>
+var RS=[[{"id": "77", "ku": "10-6", "team": "A", "name": "桃園川緑道田替橋 西側", "addr": "中野区中央1-14", "lat": 35.70102, "lon": 139.68691, "order": 1}, {"id": "74", "ku": "10-3", "team": "A", "name": "区立小淀公園 東側", "addr": "中野区中央1-24", "lat": 35.700855, "lon": 139.686307, "order": 2}, {"id": "72", "ku": "10-1", "team": "A", "name": "区立中野東中学校 北側", "addr": "中野区中央1-41-4", "lat": 35.698561, "lon": 139.683748, "order": 3}, {"id": "73", "ku": "10-2", "team": "A", "name": "区立中野東中学校 東側", "addr": "中野区中央1-41-4", "lat": 35.698561, "lon": 139.683748, "order": 4}, {"id": "78", "ku": "10-7", "team": "A", "name": "月極駐車場YSパーキング 東側", "addr": "中野区中央1-21", "lat": 35.697221, "lon": 139.686345, "order": 5}, {"id": "79", "ku": "10-8", "team": "A", "name": "区立本一公園 東側", "addr": "中野区本町1-23", "lat": 35.694207, "lon": 139.682763, "order": 6}, {"id": "76", "ku": "10-5", "team": "A", "name": "宝仙学園中学高等学校 西側", "addr": "中野区中央2-28-3", "lat": 35.69852, "lon": 139.680227, "order": 7}, {"id": "86", "ku": "11-7", "team": "A", "name": "実践学園中学・高等学校 西側", "addr": "中野区中央2-34-2", "lat": 35.700036, "lon": 139.679826, "order": 8}, {"id": "75", "ku": "10-4", "team": "A", "name": "桃園川緑道東雲橋 西側", "addr": "中野区中央2-24", "lat": 35.70055, "lon": 139.6788, "order": 9}, {"id": "84", "ku": "11-5", "team": "A", "name": "区立宮前公園 北側", "addr": "中野区中央2-39", "lat": 35.700882, "lon": 139.678616, "order": 10}, {"id": "85", "ku": "11-6", "team": "A", "name": "区立本町通り公園 西側", "addr": "中野区中央2-46", "lat": 35.69896, "lon": 139.677211, "order": 11}, {"id": "81", "ku": "11-2", "team": "A", "name": "区立ひまわり公園 北側", "addr": "中野区中央2-52-15", "lat": 35.699693, "lon": 139.675668, "order": 12}, {"id": "87", "ku": "11-8", "team": "A", "name": "区立みずき公園 南側", "addr": "中野区中央2-54", "lat": 35.700733, "lon": 139.675789, "order": 13}, {"id": "80", "ku": "11-1", "team": "A", "name": "区立中部すこやか福祉センター 西側", "addr": "中野区中央3-19-1", "lat": 35.700375, "lon": 139.674207, "order": 14}, {"id": "83", "ku": "11-4", "team": "A", "name": "桃園川緑道（中央3-14） 北側", "addr": "中野区中央3-14", "lat": 35.701, "lon": 139.6738, "order": 15}, {"id": "82", "ku": "11-3", "team": "A", "name": "慈眼寺 東側", "addr": "中野区中央3-33-3", "lat": 35.698148, "lon": 139.672003, "order": 16}, {"id": "94", "ku": "12-7", "team": "A", "name": "区立追分公園 東側", "addr": "中野区中央4-7", "lat": 35.698115, "lon": 139.668799, "order": 17}, {"id": "89", "ku": "12-2", "team": "A", "name": "株式会社友和駐車場 西側", "addr": "中野区中央5-7-1", "lat": 35.697651, "lon": 139.665859, "order": 18}, {"id": "91", "ku": "12-4", "team": "A", "name": "区立中央西公園 南側", "addr": "中野区中央5-27", "lat": 35.69925, "lon": 139.663751, "order": 19}, {"id": "88", "ku": "12-1", "team": "A", "name": "区立桃花小学校 西側", "addr": "中野区中央5-43-1", "lat": 35.700455, "lon": 139.665519, "order": 20}, {"id": "95", "ku": "12-8", "team": "A", "name": "区立桃花小学校 南側", "addr": "中野区中央5-43-1", "lat": 35.700455, "lon": 139.665519, "order": 21}, {"id": "92", "ku": "12-5", "team": "A", "name": "区立中央公園 東側", "addr": "中野区中央5-42", "lat": 35.700795, "lon": 139.666579, "order": 22}, {"id": "93", "ku": "12-6", "team": "A", "name": "区立橋場公園 南側", "addr": "中野区中央5-41", "lat": 35.701669, "lon": 139.665951, "order": 23}, {"id": "90", "ku": "12-3", "team": "A", "name": "区立鍋横防災広場 東側", "addr": "中野区中央4-8-16", "lat": 35.700828, "lon": 139.669818, "order": 24}],[{"id": "217", "ku": "28-4", "team": "B", "name": "区立新井薬師公園 南側", "addr": "中野区新井5-4", "lat": 35.714894, "lon": 139.667524, "order": 1}, {"id": "218", "ku": "28-5", "team": "B", "name": "区立新井薬師公園ひょうたん池 東側", "addr": "中野区新井4-15", "lat": 35.715303, "lon": 139.666887, "order": 2}, {"id": "214", "ku": "28-1", "team": "B", "name": "区立令和小学校 南側", "addr": "中野区新井4-19-26", "lat": 35.717122, "lon": 139.668328, "order": 3}, {"id": "215", "ku": "28-2", "team": "B", "name": "区立令和小学校 北側", "addr": "中野区新井4-19-26", "lat": 35.717122, "lon": 139.668328, "order": 4}, {"id": "221", "ku": "28-8", "team": "B", "name": "区立清掃事務所 西側", "addr": "中野区松が丘1-6-3", "lat": 35.717563, "lon": 139.669585, "order": 5}, {"id": "219", "ku": "28-6", "team": "B", "name": "妙正寺川（松が丘2-4）大下橋 南東側", "addr": "中野区松が丘2-4", "lat": 35.718633, "lon": 139.670099, "order": 6}, {"id": "220", "ku": "28-7", "team": "B", "name": "妙正寺川（沼袋1-5-6） 北側", "addr": "中野区沼袋1-5-6", "lat": 35.71776, "lon": 139.666175, "order": 7}, {"id": "216", "ku": "28-3", "team": "B", "name": "妙正寺川（沼袋1-7） 北側", "addr": "中野区沼袋1-7", "lat": 35.7188, "lon": 139.6646, "order": 8}, {"id": "210", "ku": "27-5", "team": "B", "name": "区立沼袋保育園 南側", "addr": "中野区沼袋1-34-14", "lat": 35.719566, "lon": 139.664989, "order": 9}, {"id": "209", "ku": "27-4", "team": "B", "name": "私立沼袋幼稚園 東側", "addr": "中野区沼袋2-28-2", "lat": 35.721075, "lon": 139.665371, "order": 10}, {"id": "213", "ku": "27-8", "team": "B", "name": "区立歴史民俗資料館 北側", "addr": "中野区江古田4-3-4", "lat": 35.72412, "lon": 139.665013, "order": 11}, {"id": "206", "ku": "27-1", "team": "B", "name": "区立沼袋区民活動センター 西側", "addr": "中野区沼袋2-40-18", "lat": 35.723653, "lon": 139.66304, "order": 12}, {"id": "211", "ku": "27-6", "team": "B", "name": "区立北部すこやか福祉センター 北側", "addr": "中野区江古田4-31-10", "lat": 35.724692, "lon": 139.66152, "order": 13}, {"id": "212", "ku": "27-7", "team": "B", "name": "中野区シルバー人材センター江古田分室 西側", "addr": "中野区江古田4-14-11", "lat": 35.725685, "lon": 139.664063, "order": 14}, {"id": "208", "ku": "27-3", "team": "B", "name": "都営第3江古田アパート3号棟 東側", "addr": "中野区江古田4-14-7", "lat": 35.725688, "lon": 139.664202, "order": 15}, {"id": "207", "ku": "27-2", "team": "B", "name": "特別養護老人ホーム浄風園 東側", "addr": "中野区江古田4-19-9", "lat": 35.727383, "lon": 139.663204, "order": 16}],[{"id": "303", "ku": "39-3", "team": "C", "name": "区立若葉公園 北側", "addr": "中野区鷺宮5-11", "lat": 35.725226, "lon": 139.631755, "order": 1}, {"id": "304", "ku": "39-4", "team": "C", "name": "区立鷺六公園 北側", "addr": "中野区鷺宮6-24", "lat": 35.725699, "lon": 139.62983, "order": 2}, {"id": "301", "ku": "39-1", "team": "C", "name": "区立武蔵台小学校 南側", "addr": "中野区上鷺宮5-1-1", "lat": 35.727884, "lon": 139.629901, "order": 3}, {"id": "306", "ku": "39-6", "team": "C", "name": "区立北中野中学校 西側", "addr": "中野区上鷺宮5-7-1", "lat": 35.728318, "lon": 139.628546, "order": 4}, {"id": "302", "ku": "39-2", "team": "C", "name": "都立稔が丘高等学校 東側", "addr": "中野区上鷺宮5-11-1", "lat": 35.727976, "lon": 139.625896, "order": 5}, {"id": "308", "ku": "39-8", "team": "C", "name": "区立上鷺西公園 東側", "addr": "中野区上鷺宮5-17", "lat": 35.7313, "lon": 139.625231, "order": 6}, {"id": "307", "ku": "39-7", "team": "C", "name": "区立八成公園 北側", "addr": "中野区上鷺宮5-19", "lat": 35.731553, "lon": 139.626382, "order": 7}, {"id": "313", "ku": "40-5", "team": "C", "name": "区立上鷺公園 南側", "addr": "中野区上鷺宮4-8", "lat": 35.732178, "lon": 139.628441, "order": 8}, {"id": "314", "ku": "40-6", "team": "C", "name": "区立風の子広場 南側", "addr": "中野区上鷺宮4-14", "lat": 35.734118, "lon": 139.629022, "order": 9}, {"id": "315", "ku": "40-7", "team": "C", "name": "中野区かみさぎ特別養護老人ホーム 南側", "addr": "中野区上鷺宮3-17-4", "lat": 35.7352, "lon": 139.631464, "order": 10}, {"id": "309", "ku": "40-1", "team": "C", "name": "区立上鷺宮区民活動センター 南側", "addr": "中野区上鷺宮3-7-6", "lat": 35.731893, "lon": 139.632126, "order": 11}, {"id": "305", "ku": "39-5", "team": "C", "name": "区立武蔵台公園 東側", "addr": "中野区上鷺宮5-26", "lat": 35.730591, "lon": 139.630265, "order": 12}, {"id": "311", "ku": "40-3", "team": "C", "name": "区立上鷺東公園 東側", "addr": "中野区上鷺宮2-18", "lat": 35.729782, "lon": 139.63469, "order": 13}, {"id": "310", "ku": "40-2", "team": "C", "name": "区立かみさぎこぶし園 南側", "addr": "中野区上鷺宮1-21-30", "lat": 35.729943, "lon": 139.636029, "order": 14}, {"id": "312", "ku": "40-4", "team": "C", "name": "区立上鷺宮小学校 東側", "addr": "中野区上鷺宮1-24-36", "lat": 35.731671, "lon": 139.634973, "order": 15}, {"id": "316", "ku": "40-8", "team": "C", "name": "区立上鷺宮小学校 北側", "addr": "中野区上鷺宮1-24-36", "lat": 35.731671, "lon": 139.634973, "order": 16}]];
+var CL=["#f0883e","#a78bfa","#34d399"];
+var TK=["A","B","C"];
+var ON=["on-a","on-b","on-c","on-m"];
+var PF=["pfa","pfb","pfc"];
+var cur=0,mapOk=false;
+var chk=[JSON.parse(localStorage.getItem("p0")||"{}"),JSON.parse(localStorage.getItem("p1")||"{}"),JSON.parse(localStorage.getItem("p2")||"{}")];
+function sv(t){localStorage.setItem("p"+t,JSON.stringify(chk[t]));}
+function tog(el){
+  var t=parseInt(el.dataset.t),o=parseInt(el.dataset.o);
+  var dc=el.dataset.k==="A"?"da":el.dataset.k==="B"?"db":"dc";
+  chk[t][o]=!chk[t][o];sv(t);
+  var c=document.getElementById("cd"+t+"-"+o);
+  if(chk[t][o]){c.classList.add("dn",dc);el.textContent="✓";}
+  else{c.classList.remove("dn",dc);el.textContent="";}
+  upd();
+}
+function rst(t){
+  if(!confirm("このチームのチェックをリセットしますか？"))return;
+  chk[t]={};sv(t);
+  document.querySelectorAll("#p"+t+" .cd").forEach(function(c){
+    c.classList.remove("dn","da","db","dc");
+    var btn=c.querySelector(".ck");
+    if(btn)btn.textContent="";
+  });
+  upd();
+}
+function upd(){
+  if(cur>2)return;
+  var r=RS[cur],tot=r.length;
+  var dn=Object.keys(chk[cur]).filter(function(k){return chk[cur][k];}).length;
+  var pf=document.getElementById("pf");
+  pf.className="pf "+PF[cur];
+  pf.style.width=(dn/tot*100)+"%";
+  document.getElementById("pd").textContent=dn;
+  document.getElementById("pt").textContent=tot;
+}
+function restoreChecks(t){
+  var keys=Object.keys(chk[t]);
+  keys.forEach(function(o){
+    if(!chk[t][o])return;
+    var c=document.getElementById("cd"+t+"-"+o);
+    if(!c)return;
+    var dc=TK[t]==="A"?"da":TK[t]==="B"?"db":"dc";
+    c.classList.add("dn",dc);
+    var btn=c.querySelector(".ck");
+    if(btn)btn.textContent="✓";
+  });
+}
+function mkIcon(num,col){
+  var s='<svg xmlns="http://www.w3.org/2000/svg" width="28" height="34" viewBox="0 0 28 34">'
+    +'<path d="M14 0C6.27 0 0 6.27 0 14c0 9.75 14 20 14 20S28 23.75 28 14C28 6.27 21.73 0 14 0z" fill="'+col+'" stroke="#fff" stroke-width="1.5"/>'
+    +'<circle cx="14" cy="14" r="9" fill="rgba(0,0,0,0.2)"/>'
+    +'<text x="14" y="19" text-anchor="middle" font-family="Arial,sans-serif" font-size="'+(num>9?"9":"11")+'" font-weight="900" fill="#fff">'+num+'</text></svg>';
+  return L.divIcon({html:s,iconSize:[28,34],iconAnchor:[14,34],popupAnchor:[0,-36],className:""});
+}
+function initMap(){
+  if(mapOk)return;mapOk=true;
+  var map=L.map("map",{zoomControl:true});
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+    attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',maxZoom:19
+  }).addTo(map);
+  map.setView([35.712,139.658],12);
+  RS.forEach(function(route,ti){
+    var col=CL[ti];
+    var ll=route.map(function(p){return[p.lat,p.lon];});
+    L.polyline(ll,{color:col,weight:3,opacity:0.75}).addTo(map);
+    for(var i=0;i<ll.length-1;i++){
+      var mid=[(ll[i][0]+ll[i+1][0])/2,(ll[i][1]+ll[i+1][1])/2];
+      var ang=Math.atan2(ll[i+1][0]-ll[i][0],ll[i+1][1]-ll[i][1])*180/Math.PI;
+      var sv='<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14"><polygon points="7,1 13,13 7,9 1,13" fill="'+col+'" opacity="0.9" transform="rotate('+(ang-90)+',7,7)"/></svg>';
+      L.marker(mid,{icon:L.divIcon({html:sv,iconSize:[14,14],iconAnchor:[7,7],className:""})}).addTo(map);
+    }
+    route.forEach(function(p){
+      var gu="https://www.google.com/maps/dir/?api=1&destination="+p.lat+","+p.lon+"&travelmode=driving";
+      var au="http://maps.apple.com/?daddr="+p.lat+","+p.lon+"&dirflg=d";
+      var pop='<div class="lp"><div class="po" style="color:'+col+'">'+p.order+'番</div>'
+        +'<div class="pn">'+p.name+'</div><div class="pa2">東京都'+p.addr+'</div>'
+        +'<a class="gm" href="'+gu+'" target="_blank">📍 Googleマップでナビ</a>'
+        +'<a class="am" href="'+au+'" target="_blank">🍎 Appleマップ</a></div>';
+      L.marker([p.lat,p.lon],{icon:mkIcon(p.order,col)}).bindPopup(pop,{maxWidth:240}).addTo(map);
+    });
+  });
+  document.getElementById("lg").innerHTML=
+    '<div class="li"><div class="ld" style="background:#f0883e"></div>Aチーム</div>'
+    +'<div class="li"><div class="ld" style="background:#a78bfa"></div>Bチーム</div>'
+    +'<div class="li"><div class="ld" style="background:#34d399"></div>Cチーム</div>';
+}
+function sw(t){
+  cur=t;
+  for(var i=0;i<4;i++) document.getElementById("t"+i).className="tb"+(i===t?" "+ON[t]:"");
+  ["p0","p1","p2"].forEach(function(id,i){
+    document.getElementById(id).className="panel"+(i===t?" active":"");
+  });
+  var mp=document.getElementById("map-panel");
+  var pw=document.getElementById("pw");
+  if(t===3){
+    mp.className="active";
+    pw.style.display="none";
+    initMap();
+    setTimeout(function(){
+      if(window._leafletMap)window._leafletMap.invalidateSize();
+    },100);
+  } else {
+    mp.className="";
+    pw.style.display="flex";
+    upd();
+  }
+}
+// 初期化
+restoreChecks(0);restoreChecks(1);restoreChecks(2);
+upd();
+</script>
+</body>
+</html>
